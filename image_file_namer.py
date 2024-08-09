@@ -6,8 +6,9 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 from tkinter import Tk, Label, Button, simpledialog, messagebox
 from tkinter.filedialog import askdirectory
 
-# Set the location of Tesseract
-pytesseract.pytesseract.tesseract_cmd = r"C:\Users\Robert\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
+# Dynamically set the location of the Tesseract executable
+tesseract_path = os.path.join(os.path.dirname(__file__), 'tesseract-ocr', 'tesseract.exe')
+pytesseract.pytesseract.tesseract_cmd = tesseract_path
 
 # Constants
 IMAGE_EXTENSIONS = ('.jpeg', '.jpg', '.png', '.bmp', '.tiff', '.gif')  # List of supported image file extensions
