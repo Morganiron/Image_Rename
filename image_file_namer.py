@@ -1,10 +1,10 @@
-import pytesseract
-import PIL
-import PIL.IcoImagePlugin
-import PIL.Image
-import matplotlib.pyplot as plt
-import cv2
+import sys
 import os
+import cv2
+import pytesseract
+from PIL import Image, ImageTk
+from tkinter import Tk, Label, Button, simpledialog, messagebox
+from tkinter.filedialog import askdirectory
 
 # Set the location of Tesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:\Users\Robert\AppData\Local\Programs\Tesseract-OCR\tesseract.exe"
@@ -26,56 +26,48 @@ def extract_text_from_image(img):
         text = text.replace(" ", "_")
     return text.strip()
 
-def display_image_with_message(file_name, message):
-    """Display the image with a message using Matplotlib."""
-    with PIL.Image.open(file_name) as pil_img:
-        out_img = pil_img.resize((256, 256), PIL.Image.LANCZOS)
-        plt.figure(figsize=(6, 6))
-        plt.tight_layout()
-        plt.rc(('xtick', 'ytick'), color=(1, 1, 1, 0))
-        plt.subplot(2, 1, 1)
-        plt.imshow(out_img)
-        plt.xlabel(message)
-        plt.show()
+def display_image_with_message(root, image, message, confirm_callback, reject_callback):
+    """Display the image with a message and confirmation buttons in the root Tkinter window."""
+    root.title("Confirm Rename")
+    
+    # Clear the root window
+    for widget in root.winfo_children():
+        widget.destroy()
+    
+    # Display the message
+    label = Label(root, text=message, padx=10, pady=10)
+    label.pack()
+    
+    # Convert the PIL image to a format Tkinter can use
+    resized_image = image.resize((256, 256), Image.LANCZOS)
+    tk_image = ImageTk.PhotoImage(resized_image)
+    
+    # Display the image
+    img_label = Label(root, image=tk_image)
+    img_label.image = tk_image  # Keep a reference to avoid garbage collection
+    img_label.pack()
 
-def rename_file(file_name, new_name):
+    # Add Yes and No buttons
+    yes_button = Button(root, text="Yes", command=lambda: [confirm_callback(), root.quit()])
+    no_button = Button(root, text="No", command=lambda: [reject_callback(), root.quit()])
+    yes_button.pack(side="left", padx=10, pady=10)
+    no_button.pack(side="right", padx=10, pady=10)
+
+    root.mainloop()
+
+def rename_file(old_name, new_name):
     """Rename the file to the new name."""
     try:
-        os.rename(file_name, new_name)
+        os.rename(old_name, new_name)
         print('\n\nFile renamed. Moving on.')
     except Exception as e:
         print('\n\nThere was an error renaming the file')
         print(e)
 
-def process_files():
-    """Loop through all the files in the directory and process them."""
-    try:
-        for num in range(3, 68):
-            file_name = "Shirt {}.JPEG".format(num)
-            print('\nReading file: {}'.format(file_name))
-            img = read_image(file_name)
-            text = extract_text_from_image(img)
-            new_name = 'gildan_softstyle_color_{}'.format(text.lower()) + file_extension
-            message = file_name + " will be changed to " + new_name
+def get_user_input(prompt):
+    """Prompt the user for input using a simple dialog."""
+    user_input = simpledialog.askstring("Input Required", prompt)
+    return user_input
 
-            display_image_with_message(file_name, message)
-
-            choice = input('\nIs this OK?\n')
-            if choice.lower() == 'y' or choice.lower() == 'yes':
-                rename_file(file_name, new_name)
-            else:
-                correct = False
-                while not correct:
-                    user_renamed = input('\n\nWhat would you like to rename the file?\nDo not include the file extension.(.exe/.jpg/.JPEG) ')
-                    if '.' not in user_renamed:
-                        new_name = 'gildan_softstyle_color_' + user_renamed.lower() + file_extension
-                        choice = input('\nFile will be renamed {}\nIs this OK?(yes/no)\n'.format(new_name))
-                        if choice.lower() == 'y' or choice.lower() == 'yes':
-                            correct = True
-                rename_file(file_name, new_name)
-    except Exception as e:
-        print(e)
-
-if __name__ == "__main__":
-    process_files()
-    print('\n\n\t\tThat is all!\n\nGoodbye!')
+def confirm_rename(message):
+    """Display a confirma
