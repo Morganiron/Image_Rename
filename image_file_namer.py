@@ -126,7 +126,7 @@ def process_files(directory):
                 if not text:
                     continue  # Skip to the next file if text extraction failed
                 
-                new_name = os.path.join(directory, f'gildan_softstyle_color_{text.lower()}{os.path.splitext(file_name)[1]}')
+                new_name = os.path.join(directory, f'{text.lower()}{os.path.splitext(file_name)[1]}')
                 message = f'{file_name}\nwill be changed to\n{os.path.basename(new_name)}'
 
                 with Image.open(full_path) as pil_img:
