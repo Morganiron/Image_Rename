@@ -2,7 +2,7 @@ import sys
 import os
 import cv2
 import pytesseract
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, UnidentifiedImageError
 from tkinter import Tk, Label, Button, simpledialog, messagebox
 from tkinter.filedialog import askdirectory
 
@@ -15,45 +15,60 @@ CONFIG = 'l eng — oem 1 — psm 3'
 
 def read_image(file_name):
     """Read and return the image from the specified file."""
-    img = cv2.imread(file_name)
-    print('.....file read')
-    return img
+    try:
+        img = cv2.imread(file_name)
+        if img is None:
+            raise ValueError(f"Failed to read {file_name}. Skipping.")
+        print('.....file read')
+        return img
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
+        return None
 
 def extract_text_from_image(img):
     """Extract and clean text from the given image using Tesseract OCR."""
-    text = pytesseract.image_to_string(img, config=CONFIG)
-    if " " in text:
-        text = text.replace(" ", "_")
-    return text.strip()
+    try:
+        text = pytesseract.image_to_string(img, config=CONFIG)
+        if " " in text:
+            text = text.replace(" ", "_")
+        return text.strip()
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to extract text from image. {str(e)}")
+        return None
 
 def display_image_with_message(root, image, message, confirm_callback, reject_callback):
     """Display the image with a message and confirmation buttons in the root Tkinter window."""
-    root.title("Confirm Rename")
-    
-    # Clear the root window
-    for widget in root.winfo_children():
-        widget.destroy()
-    
-    # Display the message
-    label = Label(root, text=message, padx=10, pady=10)
-    label.pack()
-    
-    # Convert the PIL image to a format Tkinter can use
-    resized_image = image.resize((256, 256), Image.LANCZOS)
-    tk_image = ImageTk.PhotoImage(resized_image)
-    
-    # Display the image
-    img_label = Label(root, image=tk_image)
-    img_label.image = tk_image  # Keep a reference to avoid garbage collection
-    img_label.pack()
+    try:
+        root.title("Confirm Rename")
+        
+        # Clear the root window
+        for widget in root.winfo_children():
+            widget.destroy()
+        
+        # Display the message
+        label = Label(root, text=message, padx=10, pady=10)
+        label.pack()
+        
+        # Convert the PIL image to a format Tkinter can use
+        resized_image = image.resize((256, 256), Image.LANCZOS)
+        tk_image = ImageTk.PhotoImage(resized_image)
+        
+        # Display the image
+        img_label = Label(root, image=tk_image)
+        img_label.image = tk_image  # Keep a reference to avoid garbage collection
+        img_label.pack()
 
-    # Add Yes and No buttons
-    yes_button = Button(root, text="Yes", command=lambda: [confirm_callback(), root.quit()])
-    no_button = Button(root, text="No", command=lambda: [reject_callback(), root.quit()])
-    yes_button.pack(side="left", padx=10, pady=10)
-    no_button.pack(side="right", padx=10, pady=10)
+        # Add Yes and No buttons
+        yes_button = Button(root, text="Yes", command=lambda: [confirm_callback(), root.quit()])
+        no_button = Button(root, text="No", command=lambda: [reject_callback(), root.quit()])
+        yes_button.pack(side="left", padx=10, pady=10)
+        no_button.pack(side="right", padx=10, pady=10)
 
-    root.mainloop()
+        root.mainloop()
+    except UnidentifiedImageError:
+        messagebox.showerror("Error", "Failed to process the image. The image file may be corrupted.")
+    except Exception as e:
+        messagebox.showerror("Error", str(e))
 
 def rename_file(old_name, new_name):
     """Rename the file to the new name."""
@@ -61,26 +76,38 @@ def rename_file(old_name, new_name):
         os.rename(old_name, new_name)
         print('\n\nFile renamed. Moving on.')
     except Exception as e:
-        print('\n\nThere was an error renaming the file')
-        print(e)
+        messagebox.showerror("Error", f"There was an error renaming the file: {str(e)}")
 
 def get_user_input(prompt):
     """Prompt the user for input using a simple dialog."""
-    user_input = simpledialog.askstring("Input Required", prompt)
-    return user_input
+    try:
+        user_input = simpledialog.askstring("Input Required", prompt)
+        if user_input is None:  # User pressed "Cancel"
+            messagebox.showinfo("No Change", "The file name will not be changed.")
+        return user_input
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to get user input: {str(e)}")
+        return None
 
 def confirm_rename(message):
     """Display a confirmation dialog with Yes/No buttons."""
-    result = messagebox.askyesno("Confirm Rename", message)
-    return result
+    try:
+        result = messagebox.askyesno("Confirm Rename", message)
+        return result
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to confirm rename: {str(e)}")
+        return False
 
 def open_directory_selection():
     """Open the directory selection dialog and start processing files."""
-    directory = askdirectory(title="Select Directory Containing Images")
-    if directory:
-        process_files(directory)
-    else:
-        print("No directory selected. Exiting.")
+    try:
+        directory = askdirectory(title="Select Directory Containing Images")
+        if directory:
+            process_files(directory)
+        else:
+            print("No directory selected. Exiting.")
+    except Exception as e:
+        messagebox.showerror("Error", f"Failed to open directory selection: {str(e)}")
 
 def process_files(directory):
     """Loop through all supported image files in the directory and process them."""
@@ -91,7 +118,13 @@ def process_files(directory):
                 print('\nReading file: {}'.format(full_path))
                 
                 img = read_image(full_path)
+                if img is None:
+                    continue  # Skip to the next file if reading failed
+                
                 text = extract_text_from_image(img)
+                if not text:
+                    continue  # Skip to the next file if text extraction failed
+                
                 new_name = 'gildan_softstyle_color_{}'.format(text.lower()) + os.path.splitext(file_name)[1]
                 message = file_name + "\nwill be changed to\n" + os.path.basename(new_name)
 
@@ -111,7 +144,7 @@ def process_files(directory):
                     
                     display_image_with_message(root, pil_img, message, on_confirm, on_reject)
     except Exception as e:
-        print(e)
+        messagebox.showerror("Error", f"An error occurred while processing files: {str(e)}")
 
 if __name__ == "__main__":
     # Create the root window
@@ -137,6 +170,6 @@ if __name__ == "__main__":
     try:
         pass  # The process_files function will be called inside open_directory_selection
     except Exception as e:
-        print(f'An error occurred: {e}')
+        messagebox.showerror("Error", f"An unexpected error occurred: {str(e)}")
     finally:
         print('\n\n\t\tThat is all!\n\nGoodbye!')
