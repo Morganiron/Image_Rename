@@ -7,12 +7,11 @@ from tkinter import Tk, Label, Button, simpledialog, messagebox
 from tkinter.filedialog import askdirectory
 
 # Hard-code the path to the Tesseract executable
-# Python cannot find it without a static path
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # Constants
 IMAGE_EXTENSIONS = ('.jpeg', '.jpg', '.png', '.bmp', '.tiff', '.gif')  # List of supported image file extensions
-CONFIG = 'l eng — oem 1 — psm 3'
+CONFIG = '--oem 1 --psm 3'
 
 def read_image(file_name):
     """Read and return the image from the specified file."""
@@ -65,6 +64,9 @@ def display_image_with_message(root, image, message, confirm_callback, reject_ca
         yes_button.pack(side="left", padx=10, pady=10)
         no_button.pack(side="right", padx=10, pady=10)
 
+        # Set the protocol for the window close button (the "X" button)
+        root.protocol("WM_DELETE_WINDOW", on_close)
+
         root.mainloop()
     except UnidentifiedImageError:
         messagebox.showerror("Error", "Failed to process the image. The image file may be corrupted.")
@@ -95,8 +97,9 @@ def on_reject(full_path, new_name, directory, file_name):
         new_new_name = os.path.join(directory, f'{user_input.lower()}{os.path.splitext(file_name)[1]}')
         if confirm_rename(f'File will be renamed to {os.path.basename(new_new_name)}. Is this OK?'):
             rename_file(full_path, new_new_name)
-    elif user_input is None:  # User pressed "Cancel"
+    else:  # User pressed "Cancel" or provided invalid input
         messagebox.showinfo("No Change", "The file name will not be changed.")
+        root.quit()  # Close the window to proceed to the next image
 
 def confirm_rename(message):
     """Display a confirmation dialog with Yes/No buttons."""
@@ -107,6 +110,11 @@ def confirm_rename(message):
         messagebox.showerror("Error", f"Failed to confirm rename: {str(e)}")
         return False
 
+def on_close():
+    """Handle the event when the user tries to close the window."""
+    root.destroy()
+    sys.exit()
+
 def open_directory_selection():
     """Open the directory selection dialog and start processing files."""
     try:
@@ -115,8 +123,10 @@ def open_directory_selection():
             process_files(directory)
         else:
             print("No directory selected. Exiting.")
+            sys.exit()
     except Exception as e:
         messagebox.showerror("Error", f"Failed to open directory selection: {str(e)}")
+        sys.exit()
 
 def process_files(directory):
     """Loop through all supported image files in the directory and process them."""
@@ -144,6 +154,7 @@ def process_files(directory):
                     display_image_with_message(root, pil_img, message, on_confirm, lambda: on_reject(full_path, new_name, directory, file_name))
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred while processing files: {str(e)}")
+        sys.exit()
         
 if __name__ == "__main__":
     # Create the root window
