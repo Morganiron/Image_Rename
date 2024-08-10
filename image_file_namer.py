@@ -83,12 +83,20 @@ def get_user_input(prompt):
     """Prompt the user for input using a simple dialog."""
     try:
         user_input = simpledialog.askstring("Input Required", prompt)
-        if user_input is None:  # User pressed "Cancel"
-            messagebox.showinfo("No Change", "The file name will not be changed.")
         return user_input
     except Exception as e:
         messagebox.showerror("Error", f"Failed to get user input: {str(e)}")
         return None
+
+def on_reject(full_path, new_name, directory, file_name):
+    """Handle the rejection case when the user chooses not to rename the file with the proposed name."""
+    user_input = get_user_input('What would you like to rename the file to? (Do not include file extension):')
+    if user_input and '.' not in user_input:
+        new_new_name = os.path.join(directory, f'{user_input.lower()}{os.path.splitext(file_name)[1]}')
+        if confirm_rename(f'File will be renamed to {os.path.basename(new_new_name)}. Is this OK?'):
+            rename_file(full_path, new_new_name)
+    elif user_input is None:  # User pressed "Cancel"
+        messagebox.showinfo("No Change", "The file name will not be changed.")
 
 def confirm_rename(message):
     """Display a confirmation dialog with Yes/No buttons."""
@@ -133,20 +141,10 @@ def process_files(directory):
                     def on_confirm():
                         rename_file(full_path, new_name)
                     
-                    def on_reject():
-                        user_input = get_user_input('What would you like to rename the file to? (Do not include file extension):')
-                        if user_input and '.' not in user_input:
-                            new_new_name = os.path.join(directory, f'{user_input.lower()}{os.path.splitext(file_name)[1]}')
-                            if confirm_rename(f'File will be renamed to {os.path.basename(new_new_name)}. Is this OK?'):
-                                rename_file(full_path, new_new_name)
-                        else:
-                            if user_input is None:  # User pressed "Cancel"
-                                messagebox.showinfo("No Change", "The file name will not be changed.")
-                    
-                    display_image_with_message(root, pil_img, message, on_confirm, on_reject)
+                    display_image_with_message(root, pil_img, message, on_confirm, lambda: on_reject(full_path, new_name, directory, file_name))
     except Exception as e:
         messagebox.showerror("Error", f"An error occurred while processing files: {str(e)}")
-
+        
 if __name__ == "__main__":
     # Create the root window
     root = Tk()
