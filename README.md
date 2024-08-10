@@ -23,8 +23,12 @@ This is a simple Python project that uses OpenCV and Tesseract OCR to read text 
 
 2. **Install Tesseract OCR**:
    - Download and install Tesseract OCR from [here](https://github.com/tesseract-ocr/tesseract).
-   - During installation, ensure that Tesseract is added to your system's PATH.
-   - If not added to PATH, update the `pytesseract.pytesseract.tesseract_cmd` variable in the script with the correct path to the `tesseract.exe` on your system.
+   - During installation, ensure that you install it to the default directory: `C:\Program Files\Tesseract-OCR\`.
+   - If you install in a different location, after installation, you need to manually set the path to the Tesseract executable in the script:
+     ```python
+     pytesseract.pytesseract.tesseract_cmd = r"{your directory}\Tesseract-OCR\tesseract.exe"
+     ```
+   - This line is already included in the script to point directly to the Tesseract executable. Make sure the path matches where Tesseract is installed on your system.
 
 3. **Install Python Packages**:
    ```bash
